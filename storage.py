@@ -1,8 +1,6 @@
 import json
 import os
-
-CONFIG_FILE = 'config.json'
-LAST_ID_FILE = 'last_id.txt'
+from settings import CONFIG_FILE, LAST_ID_FILE
 
 
 def load_config():
