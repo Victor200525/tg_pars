@@ -1,59 +1,21 @@
 import asyncio
-import json
-import os
 from datetime import datetime
-from telethon import TelegramClient
 
-CONFIG_FILE = 'config.json'
-LAST_ID_FILE = 'last_id.txt'
+from storage import load_config, prompt_config, load_last_id, save_last_id
+from tg import create_client, start_client, get_chat, format_message
 
-
-def load_config():
-    if os.path.exists(CONFIG_FILE):
-        with open(CONFIG_FILE) as f:
-            return json.load(f)
-    return None
-
-
-def save_config(config):
-    with open(CONFIG_FILE, 'w') as f:
-        json.dump(config, f, indent=2)
-
-
-def load_last_id():
-    try:
-        with open(LAST_ID_FILE) as f:
-            return int(f.read().strip())
-    except (FileNotFoundError, ValueError):
-        return 0
-
-
-def save_last_id(msg_id):
-    with open(LAST_ID_FILE, 'w') as f:
-        f.write(str(msg_id))
+POLL_INTERVAL = 15 * 60
 
 
 async def main():
     config = load_config()
     if not config:
-        print("=== Первый запуск ===")
-        print("API ID и API Hash: https://my.telegram.org")
-        api_id = int(input("API ID: ").strip())
-        api_hash = input("API Hash: ").strip()
-        phone = input("Номер телефона (с кодом, напр. +79123456789): ").strip()
-        chat_username = input("Username чата (с @, напр. @durov): ").strip()
-        config = {
-            'api_id': api_id,
-            'api_hash': api_hash,
-            'phone': phone,
-            'chat_username': chat_username
-        }
-        save_config(config)
+        config = prompt_config()
 
-    client = TelegramClient('session', config['api_id'], config['api_hash'])
-    await client.start(phone=config['phone'])
+    client = create_client(config['api_id'], config['api_hash'])
+    await start_client(client, config['phone'])
 
-    chat = await client.get_entity(config['chat_username'])
+    chat = await get_chat(client, config['chat_username'])
     last_id = load_last_id()
 
     print(f"\nПарсинг чата {config['chat_username']} запущен")
@@ -62,22 +24,13 @@ async def main():
 
     while True:
         try:
-            messages = await client.get_messages(chat, min_id=last_id, limit=100, wait_time=0)
+            messages = await client.get_messages(
+                chat, min_id=last_id, limit=100, wait_time=0
+            )
 
             if messages:
                 for msg in reversed(messages):
-                    sender = msg.sender_id
-                    try:
-                        s = await msg.get_sender()
-                        if s:
-                            sender = s.first_name or s.username or str(s.id)
-                    except Exception:
-                        pass
-
-                    text = msg.text or '(медиа/стикер)'
-                    ts = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                    print(f"[{ts}] {sender}: {text}")
-
+                    print(await format_message(msg))
                 last_id = max(m.id for m in messages)
                 save_last_id(last_id)
             else:
@@ -88,7 +41,7 @@ async def main():
             ts = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             print(f"[{ts}] Ошибка: {e}")
 
-        await asyncio.sleep(15 * 60)
+        await asyncio.sleep(POLL_INTERVAL)
 
 
 if __name__ == '__main__':
