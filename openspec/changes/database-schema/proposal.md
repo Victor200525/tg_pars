@@ -6,9 +6,6 @@
 
 - Внедрение PostgreSQL как постоянного хранилища
 - **Новые таблицы**: `products`, `subscription_plans`, `addon_plans`, `clients`, `subscriptions`, `addon_purchases`, `channels`, `client_channels`, `keyword_filters`, `matches`, `request_usage_log`
-- Отказ от JSON/txt файлов (`config.json`, `last_id.txt`) в пользу БД
-- Модели данных в Python
-- API для управления клиентами, подписками, каналами и фильтрами
 - **BREAKING**: полная смена архитектуры хранения, старые файлы несовместимы
 
 ## Capabilities
@@ -28,5 +25,4 @@
 ## Impact
 
 - **Ядро**: замена файлового storage на PostgreSQL
-- **Парсер**: переход от одного чата к мультиканальному, учёт запросов перед опросом
 - **Нет обратной совместимости** со старым форматом данных
